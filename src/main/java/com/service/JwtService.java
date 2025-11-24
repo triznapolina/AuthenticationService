@@ -44,5 +44,6 @@ public interface JwtService {
 
     Key getSigningKey();
 
+    String extractRole(String token);
 
 }

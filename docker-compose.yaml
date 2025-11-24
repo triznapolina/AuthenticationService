@@ -1,23 +1,36 @@
 services:
-  postgres:
-    image: postgres:16
+  auth-app:
+    build:
+      context: .
+    container_name: auth_service
+    ports:
+      - "8081:8081"
     restart: always
-    environment:
-      POSTGRES_URL: ${DB_URL}
-      POSTGRES_USER: ${DB_LOGIN}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  service:
-    build: .
-    ports:
-      - "8084:8084"
     depends_on:
       - postgres
+    networks:
+      - auth_net
+    env_file:
+      - .env
 
+  postgres:
+      image: postgres:16
+      restart: always
+      container_name: auth_db
+      ports:
+        - "5433:5432"
+      environment:
+        POSTGRES_USER: ${DB_LOGIN}
+        POSTGRES_PASSWORD: ${DB_PASSWORD}
+        POSTGRES_URL: ${DB_URL}
+      networks:
+        - auth_net
+      volumes:
+        - postgres_data:/var/lib/postgresql/data
+
+networks:
+  auth_net:
+    driver: bridge
 
 volumes:
   postgres_data: {}

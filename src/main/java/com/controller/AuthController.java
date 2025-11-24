@@ -3,6 +3,7 @@ package com.controller;
 import com.dto.AuthResponse;
 import com.dto.AuthRequest;
 import com.dto.RegistRequest;
+import com.dto.UserInfoResponse;
 import com.service.AuthenticationService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -46,6 +47,16 @@ public class AuthController {
         boolean isValid = authenticationService.isTokenValid(token);
         return ResponseEntity.ok(isValid);
     }
+
+
+
+    @GetMapping("/user-info")
+    public ResponseEntity<UserInfoResponse> getUserInfo(@RequestParam String token) {
+        UserInfoResponse userInfo = authenticationService.getUserInfo(token);
+        return ResponseEntity.ok(userInfo);
+    }
+
+
 
 
 

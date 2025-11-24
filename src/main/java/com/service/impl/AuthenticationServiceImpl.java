@@ -4,6 +4,7 @@ package com.service.impl;
 import com.dto.AuthResponse;
 import com.dto.AuthRequest;
 import com.dto.RegistRequest;
+import com.dto.UserInfoResponse;
 import com.entity.User;
 import com.service.AuthenticationService;
 import com.service.JwtService;
@@ -93,6 +94,16 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public boolean isTokenValid(String token) {
         return jwtService.validateAccessToken(token);
+    }
+
+    @Override
+    public UserInfoResponse getUserInfo(String token) {
+
+        String username = jwtService.extractUserName(token);
+
+        String role = jwtService.extractRole(token);
+
+        return new UserInfoResponse(username, role);
     }
 
 

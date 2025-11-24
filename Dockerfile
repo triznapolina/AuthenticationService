@@ -1,6 +1,6 @@
-FROM maven:3.9.11-eclipse-temurin-21-alpine AS build
+FROM maven:3.9.11-eclipse-temurin-21-alpine AS build-jar
 COPY pom.xml .
-COPY srs ./src
+COPY src ./src
 RUN mvn clean package -DskipTests
 
 FROM eclipse-temurin:21-jdk
