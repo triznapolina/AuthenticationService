@@ -1,65 +1,112 @@
 package com.controller;
 
-import com.dto.AuthResponse;
 import com.dto.AuthRequest;
+import com.dto.AuthResponse;
+import com.dto.TokenRequest;
 import com.dto.RegistRequest;
-import com.dto.UserInfoResponse;
-import com.service.AuthenticationService;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.validation.Valid;
+import com.entity.User;
+import com.service.UserService;
+import com.service.JwtService;
+import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthenticationService authenticationService;
+    private final UserService userService;
+    private final JwtService jwtService;
+
+    private final Map<String, String> refreshStorage = new HashMap<>();
+
+    private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+
 
     @PostMapping("/register")
-    public ResponseEntity<Void> register(@RequestBody @Valid RegistRequest request) {
-        authenticationService.register(request);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<?> postUser(@RequestBody RegistRequest request){
+
+        String hashedPassword = encoder.encode(request.getPassword());
+
+        User user = new User();
+        user.setUsername(request.getUsername());
+        user.setPassword(hashedPassword);
+        user.setRole(User.Role.USER);
+        userService.createUser(user);
+        return new ResponseEntity<>(user, HttpStatus.CREATED);
     }
 
 
-    @PostMapping("login")
-    public ResponseEntity<AuthResponse> login(@RequestBody @Valid AuthRequest request) {
-        AuthResponse tokenAnswer = authenticationService.login(request);
-        return ResponseEntity.ok(tokenAnswer);
+    @PostMapping("/login")
+    public ResponseEntity<?> loginUser(@RequestBody AuthRequest userS) {
+        var user = userService.userDetailsService().loadUserByUsername(userS.getUsername());
+        var accessToken = jwtService.generateAccessToken(user);
+        var refreshToken = jwtService.generateRefreshToken(user);
+        refreshStorage.put(user.getUsername(), refreshToken);
+        return new ResponseEntity<>(new AuthResponse(accessToken, refreshToken), HttpStatus.OK);
     }
 
 
+    @PostMapping("/token")
+    public ResponseEntity<AuthResponse> getAccessToken(@RequestBody TokenRequest request) {
 
-    @PostMapping("refresh")
-    public ResponseEntity<AuthResponse> refreshToken(HttpServletRequest request,
-                                                     HttpServletResponse response) {
-        return authenticationService.refreshToken(request, response);
+        String refreshToken = request.getRefreshToken();
+        if (!jwtService.validateRefreshToken(refreshToken)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new AuthResponse(null, null));
+        }
+
+        final Claims claims = jwtService.getRefreshClaims(refreshToken);
+        final String login = claims.getSubject();
+
+        final User user = userService.getByUsername(login);
+        final String accessToken = jwtService.generateAccessToken(user);
+        return ResponseEntity.ok(new AuthResponse(accessToken, null));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(@RequestBody TokenRequest request) {
+        String refreshToken = request.getRefreshToken();
+        if (!jwtService.validateRefreshToken(refreshToken)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new AuthResponse(null, null));
+        }
+
+        final Claims claims = jwtService.getRefreshClaims(refreshToken);
+
+        final String login = claims.getSubject();
+        final String savedRefreshToken = refreshStorage.get(login);
+
+        if (savedRefreshToken == null || !savedRefreshToken.equals(refreshToken)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new AuthResponse(null, null));
+        }
+
+        final User user = userService.getByUsername(login);
+        final String accessToken = jwtService.generateAccessToken(user);
+        final String newRefreshToken = jwtService.generateRefreshToken(user);
+
+        refreshStorage.put(user.getUsername(), newRefreshToken);
+        return ResponseEntity.ok(new AuthResponse(accessToken, newRefreshToken));
     }
 
 
-    @GetMapping("/validate-access-token")
-    public ResponseEntity<Boolean> validateToken(@RequestParam String token) {
-        boolean isValid = authenticationService.isTokenValid(token);
-        return ResponseEntity.ok(isValid);
+    @PostMapping("/validate")
+    public ResponseEntity<String> validateToken(@RequestBody TokenRequest request) {
+        boolean isValid = jwtService.validateToken(request.getRefreshToken());
+        if (isValid) {
+            return ResponseEntity.ok("Token is valid.");
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token is invalid or expired.");
+        }
     }
-
-
-
-    @GetMapping("/user-info")
-    public ResponseEntity<UserInfoResponse> getUserInfo(@RequestParam String token) {
-        UserInfoResponse userInfo = authenticationService.getUserInfo(token);
-        return ResponseEntity.ok(userInfo);
-    }
-
-
-
-
-
 
 
 }

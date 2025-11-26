@@ -17,7 +17,7 @@ public class RegistRequest {
     @Email(message = "Email should have a pattern like 'user@some.com'")
     private String email;
 
-    @Size(min = 8, max = 20, message = "Password should contains from 8 to 20 symbols")
+    @Size(min = 8, max = 16, message = "Password should contains from 8 to 20 symbols")
     @NotBlank(message = "Password can't be empty")
     private String password;
 }
