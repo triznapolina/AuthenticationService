@@ -34,9 +34,9 @@ public class AuthController {
     public ResponseEntity<?> postUser(@RequestBody RegistRequest request){
 
         String hashedPassword = encoder.encode(request.getPassword());
-
         User user = new User();
         user.setUsername(request.getUsername());
+        user.setEmail(request.getEmail());
         user.setPassword(hashedPassword);
         user.setRole(User.Role.USER);
         userService.createUser(user);
@@ -46,10 +46,11 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@RequestBody AuthRequest userS) {
-        var user = userService.userDetailsService().loadUserByUsername(userS.getUsername());
+        User user = (User) userService.userDetailsService().loadUserByUsername(userS.getEmail());
+        System.out.println(user);
         var accessToken = jwtService.generateAccessToken(user);
         var refreshToken = jwtService.generateRefreshToken(user);
-        refreshStorage.put(user.getUsername(), refreshToken);
+        refreshStorage.put(user.getEmail(), refreshToken);
         return new ResponseEntity<>(new AuthResponse(accessToken, refreshToken), HttpStatus.OK);
     }
 
@@ -66,9 +67,9 @@ public class AuthController {
         final Claims claims = jwtService.getRefreshClaims(refreshToken);
         final String login = claims.getSubject();
 
-        final User user = userService.getByUsername(login);
-        final String accessToken = jwtService.generateAccessToken(user);
-        return ResponseEntity.ok(new AuthResponse(accessToken, null));
+        final User user = userService.getByEmail(login);
+        final String newAccessToken = jwtService.generateAccessToken(user);
+        return ResponseEntity.ok(new AuthResponse(newAccessToken, refreshToken));
     }
 
     @PostMapping("/refresh")
@@ -89,7 +90,7 @@ public class AuthController {
                     .body(new AuthResponse(null, null));
         }
 
-        final User user = userService.getByUsername(login);
+        final User user = userService.getByEmail(login);
         final String accessToken = jwtService.generateAccessToken(user);
         final String newRefreshToken = jwtService.generateRefreshToken(user);
 

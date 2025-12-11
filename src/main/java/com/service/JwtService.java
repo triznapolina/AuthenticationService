@@ -30,13 +30,13 @@ public class JwtService {
 
     public String generateAccessToken(UserDetails user) {
         Map<String, Object> claims = createClaims(user);
-        return generateToken(claims, user, accessTokenExpiration);
+        return generateToken(claims, (User) user, accessTokenExpiration);
     }
 
 
     public String generateRefreshToken(UserDetails user) {
         Map<String, Object> claims = createClaims(user);
-        return generateToken(claims, user, refreshTokenExpiration);
+        return generateToken(claims, (User) user, refreshTokenExpiration);
     }
 
 
@@ -59,10 +59,10 @@ public class JwtService {
     }
 
 
-    public String generateToken(Map<String, Object> extraClaims, UserDetails user, long expiryTime) {
+    public String generateToken(Map<String, Object> extraClaims, User user, long expiryTime) {
         return Jwts.builder()
                 .setClaims(extraClaims)
-                .setSubject(user.getUsername())
+                .setSubject(user.getEmail())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + expiryTime))
                 .signWith(getSigningKey())

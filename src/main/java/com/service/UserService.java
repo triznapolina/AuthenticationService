@@ -16,7 +16,7 @@ public interface UserService {
 
     User createUser(User user);
 
-    User getByUsername(String username);
+    User getByEmail(String email);
 
     UserDetailsService userDetailsService();
 }

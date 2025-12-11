@@ -22,14 +22,14 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
-    public User getByUsername(String username) {
-        return repository.findByUsername(username);
+    public User getByEmail(String email) {
+        return repository.findByEmail(email);
 
     }
 
     @Override
     public UserDetailsService userDetailsService() {
-        return this::getByUsername;
+        return this::getByEmail;
     }
 
 }
