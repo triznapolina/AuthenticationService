@@ -1,0 +1,34 @@
+services:
+
+  app:
+    image: 'docker-spring-boot-postgres:latest'
+    build:
+      context: .
+    container_name: app
+    depends_on:
+      - db
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    ports:
+      - "8083:8081"
+    networks:
+      - auth-net
+
+
+  db:
+      image: postgres:16
+      container_name: db
+      environment:
+        POSTGRES_USER: ${DB_LOGIN}
+        POSTGRES_PASSWORD: ${DB_PASSWORD}
+        POSTGRES_DB: authDB
+      networks:
+        - auth-net
+
+networks:
+  auth-net:
+    driver: bridge
+
+
+volumes:
+  db_data: {}
